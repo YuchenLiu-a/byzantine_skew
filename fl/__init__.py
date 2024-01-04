@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import numpy.random as random
+import time
 from . import utils
 
 from torch.utils.data.dataloader import DataLoader
@@ -44,6 +45,7 @@ def fl_train(args):
 
     # start
     for epoch in range(args.server_n_epochs):
+        tic = time.time()
         # sample clients
         sampled_client_idxs: set[str] = set(str(idx) for idx in random.choice(args.n_clients, args.n_sampled_clients, replace=False).tolist())
         # distribute
@@ -77,15 +79,6 @@ def fl_train(args):
         byz_dev_stats = utils.eval_byz_dev(byz_client_msgs, ben_client_msgs)
         agg_dev_stats = utils.eval_agg_dev(agg_update, ben_client_msgs)
         perf_stats = utils.eval_perf(global_model, te_dataloader, loss_fun)
-        # output
-        print(f'==================== epoch {epoch} ====================')
-        print(f'sampled clients: {sampled_client_idxs}')
-        utils.print_dict(ben_stats, 'ben_updates stats')
-        utils.print_dict(byz_verbose_log, args.attack)
-        utils.print_dict(byz_dev_stats, 'byz_update dev stats')
-        utils.print_dict(agg_verbose_log, args.aggregator)
-        utils.print_dict(agg_dev_stats, 'agg_update dev stats')
-        utils.print_dict(perf_stats, f'performance {epoch}')
         # wandb log
         if args.wandb:
             import wandb
@@ -101,6 +94,17 @@ def fl_train(args):
             wandb.log(log_data) # type: ignore
         if not args.nice and epoch == 0:
             utils.block(args.devices)
+        toc = time.time()
+        # output
+        print(f'==================== epoch {epoch} time {toc - tic: .2f} ====================')
+        print(f'sampled clients: {sampled_client_idxs}')
+        utils.print_dict(ben_stats, 'ben_updates stats')
+        utils.print_dict(byz_verbose_log, args.attack)
+        utils.print_dict(byz_dev_stats, 'byz_update dev stats')
+        utils.print_dict(agg_verbose_log, args.aggregator)
+        utils.print_dict(agg_dev_stats, 'agg_update dev stats')
+        utils.print_dict(perf_stats, f'performance {epoch}')
+        
 
     print('==================== end of training ====================')
 

@@ -1,6 +1,6 @@
 from argparse import Namespace
 cifar10_config = Namespace(
-    data_root = '~/datasets/cifar10',
+    data_root = 'data/cifar10',
     n_clients = 50,
     n_classes = 10,
 

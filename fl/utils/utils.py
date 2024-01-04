@@ -17,13 +17,13 @@ def setup_seed(seed):
     numpy.random.seed(seed)
     cudnn.deterministic = True
 
-def print_dict(d: dict, title: str):
+def print_dict(d: dict, title: str, flush=True):
     if len(d) == 0:
         return
     else:
         print(f'==================== {title} ====================')
         for key, val in d.items():
-            print(f'{key}: {val}')
+            print(f'{key}: {val}', flush=flush)
 
 def static_vars(**kwargs):
     def decorate(func):

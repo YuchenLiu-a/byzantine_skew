@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import torch
+import torch.nn.functional as F
 
 from typing import Tuple
 
@@ -57,24 +58,37 @@ def eval_ben_updates(benign_client_messages: dict[str, dict], eps: float=1e-7) -
         # dimension-wise
         
         # principle compoment
-        # q = len(flat_benign_updates)
-        # U, S, _ = torch.pca_lowrank(flat_benign_updates, q=q, center=True)
-        # principle_coordinates = U[:, 0]
-        # pca_mean = principle_coordinates.mean().item()
+        q = len(flat_benign_updates)
+        U, S, V = torch.pca_lowrank(flat_benign_updates, q=q, center=True)
+        principle_coordinates = U[:, 0]
+        pca_mean = principle_coordinates.mean().item()
         # pca_median = principle_coordinates.median().item()
         # pca_median_shift = pca_median - pca_mean
-        # pca_std = principle_coordinates.std(unbiased=False).item()
-        # pca_moment3 = (principle_coordinates - pca_mean).pow(3).mean().item()
-        # pca_fisher = pca_moment3 / (pca_std ** 3 + eps)
+        pca_std = principle_coordinates.std(unbiased=False).item()
+        pca_moment3 = (principle_coordinates - pca_mean).pow(3).mean().item()
+        pca_fisher = pca_moment3 / (pca_std ** 3 + eps)
+
+        pca_dir = V[:, 0]
+        ipm_dir = -mean
+        pca_vs_ipm = F.cosine_similarity(pca_dir, ipm_dir, dim=0).item()
+        skew_pca_dir = pca_fisher * pca_dir
+        skew_pca_vs_ipm = F.cosine_similarity(skew_pca_dir, ipm_dir, dim=0).item()
+        lie_dir = flat_benign_updates.std(dim=0)
+        pca_vs_lie = F.cosine_similarity(pca_dir, lie_dir, dim=0).item()
+        
 
         ben_stats = {
-            # 'principle_coordinates': principle_coordinates.tolist(),
+            'principle_coordinates': principle_coordinates.tolist(),
 
             'benign_avg_norm': mean.norm().item(),
-            # 'singular_values': S.tolist(),
+            'singular_values': S.tolist(),
             # 'pca_std': pca_std,
 
-            # 'pca_fisher': pca_fisher,
+            'pca_vs_ipm': pca_vs_ipm, 
+            'skew_pca_vs_ipm': skew_pca_vs_ipm, 
+            'pca_vs_lie': pca_vs_lie, 
+
+            'pca_fisher': pca_fisher,
             # 'pca_median_shift': pca_median_shift,
         }
 
